@@ -15,7 +15,7 @@ var (
 	_ certmagic.Storage = (*Storage)(nil)
 )
 
-// Store implements certmagic.Storage
+// Storage implements certmagic.Storage
 type Storage struct {
 	// DB is the underlying badger database
 	DB *badger.DB
@@ -97,11 +97,16 @@ func (sto *Storage) List(prefix string, recursive bool) ([]string, error) {
 		dir = append(dir, '/')
 		it := txn.NewIterator(badger.IteratorOptions{Prefix: dir})
 		defer it.Close()
-		for it.Rewind(); it.Valid(); it.Next() {
+		it.Rewind()
+		if !it.Valid() {
+			return badger.ErrKeyNotFound
+		}
+		for ; it.Valid(); it.Next() {
 			itm := it.Item()
-			fn := bytes.TrimPrefix(itm.Key(), dir)
+			key := itm.Key()
+			fn := bytes.TrimPrefix(key, dir)
 			if len(fn) != 0 && (recursive || !bytes.Contains(fn, []byte{'/'})) {
-				keys = append(keys, string(fn))
+				keys = append(keys, string(key))
 			}
 		}
 		return nil
