@@ -68,9 +68,6 @@ func (sto *Storage) Load(key string) ([]byte, error) {
 func (sto *Storage) Delete(key string) error {
 	err := sto.DB.Update(func(txn *badger.Txn) error {
 		k := []byte(key)
-		if _, err := txn.Get(k); err == badger.ErrKeyNotFound {
-			return err
-		}
 		return txn.Delete(k)
 	})
 	if err != nil {
@@ -90,24 +87,26 @@ func (sto *Storage) Exists(key string) bool {
 
 // List implements certmagic.Storage.List
 func (sto *Storage) List(prefix string, recursive bool) ([]string, error) {
+	seen := map[string]bool{}
 	var keys []string
 	err := sto.DB.View(func(txn *badger.Txn) error {
-		dir := make([]byte, 0, len(prefix)+1)
-		dir = append(dir, prefix...)
-		dir = append(dir, '/')
-		it := txn.NewIterator(badger.IteratorOptions{Prefix: dir})
+		pfx := make([]byte, 0, len(prefix)+1)
+		pfx = append(pfx, prefix...)
+		pfx = append(pfx, '/')
+		it := txn.NewIterator(badger.IteratorOptions{Prefix: pfx})
 		defer it.Close()
 		it.Rewind()
 		if !it.Valid() {
 			return badger.ErrKeyNotFound
 		}
 		for ; it.Valid(); it.Next() {
-			itm := it.Item()
-			key := itm.Key()
-			fn := bytes.TrimPrefix(key, dir)
-			if len(fn) != 0 && (recursive || !bytes.Contains(fn, []byte{'/'})) {
-				keys = append(keys, string(key))
-			}
+			walkKey(it.Item().Key(), len(pfx), recursive, func(k []byte) {
+				if seen[string(k)] {
+					return
+				}
+				seen[string(k)] = true
+				keys = append(keys, string(k))
+			})
 		}
 		return nil
 	})
@@ -152,4 +151,19 @@ func (sto *Storage) Stat(key string) (certmagic.KeyInfo, error) {
 // New return a new Storage using db to store persisted data.
 func New(db *badger.DB) *Storage {
 	return &Storage{DB: db}
+}
+
+func walkKey(k []byte, sp int, recursive bool, f func([]byte)) {
+	if sp >= len(k) {
+		return
+	}
+	if i := bytes.IndexByte(k[sp:], '/'); i >= 0 {
+		sp += i
+	} else {
+		sp = len(k)
+	}
+	f(k[:sp])
+	if recursive {
+		walkKey(k, sp+1, recursive, f)
+	}
 }
