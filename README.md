@@ -1,12 +1,12 @@
-# certmagic-storage-badger
+# certmagic-badgerstorage
 
-Package storage implements a [certmagic.Storage](https://pkg.go.dev/github.com/caddyserver/certmagic?tab=doc#Storage) on top of a [Badger](https://github.com/dgraph-io/badger) database.
+Package badgerstorage implements a [certmagic.Storage](https://pkg.go.dev/github.com/caddyserver/certmagic?tab=doc#Storage) on top of a [Badger](https://github.com/dgraph-io/badger) database.
 
 It's an alternative to the default file-system storage used by [CertMagic](https://github.com/caddyserver/certmagic).
 
 # Install
 
-    go get oya.to/certmagic-storage-badger
+    go get oya.to/certmagic-badgerstorage
 
 # Usage
 
@@ -16,7 +16,7 @@ It's an alternative to the default file-system storage used by [CertMagic](https
     	"github.com/caddyserver/certmagic"
     	"github.com/dgraph-io/badger/v2"
     	"log"
-    	storage "oya.to/certmagic-storage-badger"
+    	"oya.to/certmagic-badgerstorage"
     )
 
     func main() {
@@ -27,7 +27,7 @@ It's an alternative to the default file-system storage used by [CertMagic](https
     	}
 
     	// set the default CertMagic storage to replace the file-system based on.
-    	certmagic.Default.Storage = storage.New(db)
+    	certmagic.Default.Storage = badgerstorage.New(db)
 
     	// setup the rest of your CertMagic stuff...
     }

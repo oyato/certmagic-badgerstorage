@@ -1,4 +1,4 @@
-package storage
+package badgerstorage
 
 import (
 	"github.com/caddyserver/certmagic"

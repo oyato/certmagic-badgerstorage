@@ -1,4 +1,4 @@
-module oya.to/certmagic-storage-badger
+module oya.to/certmagic-badgerstorage
 
 go 1.14
 

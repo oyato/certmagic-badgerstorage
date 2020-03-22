@@ -1,7 +1,7 @@
-// Package storage implements certmagic.Storage on top of a Badger database.
+// Package badgerstorage implements certmagic.Storage on top of a Badger database.
 //
 // It's an alternative to the default file-system storage used by CertMagic.
-package storage
+package badgerstorage
 
 import (
 	"bytes"
