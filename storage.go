@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/caddyserver/certmagic"
 	"github.com/dgraph-io/badger/v2"
+	"io/fs"
 	"oya.to/namedlocker"
 )
 
@@ -60,7 +61,7 @@ func (sto *Storage) Load(_ context.Context, key string) ([]byte, error) {
 		})
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Storage.Load: %w", err)
+		return nil, fs.ErrNotExist
 	}
 	return val, nil
 }
