@@ -5,9 +5,11 @@ package badgerstorage
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/caddyserver/certmagic"
 	"github.com/dgraph-io/badger/v2"
+	"io/fs"
 	"oya.to/namedlocker"
 )
 
@@ -24,18 +26,18 @@ type Storage struct {
 }
 
 // Lock implements certmagic.Storage.Lock
-func (sto *Storage) Lock(key string) error {
+func (sto *Storage) Lock(_ context.Context, key string) error {
 	sto.ls.Lock(key)
 	return nil
 }
 
 // Unlock implements certmagic.Storage.Unlock
-func (sto *Storage) Unlock(key string) error {
+func (sto *Storage) Unlock(_ context.Context, key string) error {
 	return sto.ls.TryUnlock(key)
 }
 
 // Store implements certmagic.Storage.Store
-func (sto *Storage) Store(key string, value []byte) error {
+func (sto *Storage) Store(_ context.Context, key string, value []byte) error {
 	err := sto.DB.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(key), value)
 	})
@@ -46,7 +48,7 @@ func (sto *Storage) Store(key string, value []byte) error {
 }
 
 // Load implements certmagic.Storage.Load
-func (sto *Storage) Load(key string) ([]byte, error) {
+func (sto *Storage) Load(_ context.Context, key string) ([]byte, error) {
 	var val []byte
 	err := sto.DB.View(func(txn *badger.Txn) error {
 		itm, err := txn.Get([]byte(key))
@@ -59,13 +61,13 @@ func (sto *Storage) Load(key string) ([]byte, error) {
 		})
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Storage.Load: %w", err)
+		return nil, fs.ErrNotExist
 	}
 	return val, nil
 }
 
 // Delete implements certmagic.Storage.Delete
-func (sto *Storage) Delete(key string) error {
+func (sto *Storage) Delete(_ context.Context, key string) error {
 	err := sto.DB.Update(func(txn *badger.Txn) error {
 		k := []byte(key)
 		return txn.Delete(k)
@@ -77,7 +79,7 @@ func (sto *Storage) Delete(key string) error {
 }
 
 // Exists implements certmagic.Storage.Exists
-func (sto *Storage) Exists(key string) bool {
+func (sto *Storage) Exists(_ context.Context, key string) bool {
 	err := sto.DB.View(func(txn *badger.Txn) error {
 		_, err := txn.Get([]byte(key))
 		return err
@@ -86,7 +88,7 @@ func (sto *Storage) Exists(key string) bool {
 }
 
 // List implements certmagic.Storage.List
-func (sto *Storage) List(prefix string, recursive bool) ([]string, error) {
+func (sto *Storage) List(_ context.Context, prefix string, recursive bool) ([]string, error) {
 	seen := map[string]bool{}
 	var keys []string
 	err := sto.DB.View(func(txn *badger.Txn) error {
@@ -117,7 +119,7 @@ func (sto *Storage) List(prefix string, recursive bool) ([]string, error) {
 }
 
 // Stat implements certmagic.Storage.Stat
-func (sto *Storage) Stat(key string) (certmagic.KeyInfo, error) {
+func (sto *Storage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error) {
 	inf := certmagic.KeyInfo{Key: key}
 	err := sto.DB.View(func(txn *badger.Txn) error {
 		fn := make([]byte, 0, len(key)+1)
